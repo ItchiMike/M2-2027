@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>M2 2027</title>
+<meta name="theme-color" content="#0d4624" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c1a12" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="M2 2027">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Connexion -->
+<main class="wrap" id="loginView" hidden>
+  <header>
+    <div class="brand">
+      <div class="logo" role="img" aria-label="Logo du Golf Château de la Tournette"></div>
+      <div class="brandtxt">
+        <div class="eyebrow">Golf Château de la Tournette</div>
+        <h1>M2 2027</h1>
+      </div>
+    </div>
+  </header>
+  <form class="login" id="loginForm" autocomplete="off">
+    <h2 style="border-top:0;padding-top:0">Connexion</h2>
+    <p class="muted">Choisissez votre nom et entrez le code personnel qui vous a été envoyé. L'appareil s'en souviendra.</p>
+    <label>Joueur<select id="lplayer" required></select></label>
+    <label>Code personnel<input id="lcode" type="password" inputmode="numeric" autocomplete="one-time-code" required></label>
+    <button class="btn" type="submit" id="lbtn">Se connecter</button>
+    <p class="msg" id="lmsg"></p>
+  </form>
+</main>
+
+<!-- Application -->
+<main class="wrap" id="appView" hidden>
+  <header>
+    <div class="brand">
+      <div class="logo" role="img" aria-label="Logo du Golf Château de la Tournette"></div>
+      <div class="brandtxt">
+        <div class="eyebrow">Golf Château de la Tournette · Préparation interclubs 2027</div>
+        <h1>M2 2027</h1>
+      </div>
+    </div>
+    <p class="sub">Matchplays en un contre un, tout le monde contre tout le monde : 14 joueurs, 91 paires. Un match de 9 trous vaut 1 point, un match de 18 trous 2 points (égalité : la moitié). Deux joueurs peuvent jouer un match de 18 trous ou deux matchs de 9 trous. Dernière date pour jouer : dimanche 11 avril 2027.</p>
+    <div class="userbar">
+      <span>Connecté : <b id="meName"></b></span>
+      <button class="link" id="refreshBtn" type="button">Actualiser</button>
+      <button class="link" id="logoutBtn" type="button">Changer de joueur</button>
+      <span class="sync" id="sync"></span>
+    </div>
+    <div id="notices"></div>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <section>
+    <h2>Classement <small id="upd"></small></h2>
+    <div class="scroll"><table id="table"></table></div>
+    <p class="muted">Départage : confrontation directe entre joueurs à égalité, puis nombre de victoires. Touchez un nom pour ouvrir sa fiche.</p>
+  </section>
+
+  <section id="fiche">
+    <h2>Fiche joueur</h2>
+    <label class="pick">Joueur<select id="pick"></select></label>
+    <div id="fiche-body"></div>
+  </section>
+
+  <section>
+    <h2>Tableau des rencontres</h2>
+    <div class="scroll"><table class="x" id="grid"></table></div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--win-soft);outline:1px solid var(--win)"></i>Points marqués par le joueur de la ligne contre celui de la colonne : plus de la moitié</span>
+      <span><i class="sw" style="background:var(--half-soft);outline:1px solid var(--half)"></i>Moitié</span>
+      <span><i class="sw" style="background:var(--loss-soft);outline:1px solid var(--loss)"></i>Moins de la moitié</span>
+    </div>
+  </section>
+
+  <section class="entry" id="entry">
+    <h2 style="border-top:0;padding-top:0" id="mtitle">Saisir un résultat</h2>
+    <form class="form" id="mform">
+      <label>Joueur 1<select id="fa" required></select></label>
+      <label>Joueur 2<select id="fb" required></select></label>
+      <label>Format<select id="ffmt"><option value="9">9 trous</option><option value="18">18 trous</option></select></label>
+      <label>Terrain<select id="floop"></select></label>
+      <label>Résultat<select id="fres"></select></label>
+      <label id="scorewrap">Score<select id="fscore"></select></label>
+      <label>Date<input type="date" id="fdate" required></label>
+      <div class="btnrow">
+        <button class="btn" type="submit" id="fbtn">Enregistrer</button>
+        <button class="btn ghost" type="button" id="fcancel" hidden>Annuler</button>
+      </div>
+    </form>
+    <p class="msg" id="fmsg"></p>
+  </section>
+
+  <section>
+    <h2>Derniers résultats <small id="rcount"></small></h2>
+    <ul class="res" id="results"></ul>
+  </section>
+
+  <section>
+    <h2>Terrains joués</h2>
+    <div class="loops" id="loops"></div>
+    <p class="muted">Un match de 9 trous compte pour un terrain, un match de 18 trous pour deux.</p>
+  </section>
+
+  <section>
+    <h2>Calendrier <small>Entraînements, matchs, repas d'équipe</small></h2>
+    <div id="events"></div>
+    <div class="entry" id="eentry">
+      <h3 id="etitle">Ajouter un événement</h3>
+      <form class="form" id="eform">
+        <label>Titre<input type="text" id="etitleIn" maxlength="80" list="esuggest" required placeholder="Entraînement avec Florian"></label>
+        <datalist id="esuggest"><option value="Entraînement avec Florian"><option value="Match d'équipe"><option value="Réunion d'équipe"><option value="Repas d'équipe"></datalist>
+        <label>Date<input type="date" id="edate" required></label>
+        <label>Heure (facultatif)<input type="time" id="etime"></label>
+        <label>Durée<select id="edur"><option value="30">30 min</option><option value="60" selected>1 h</option><option value="90">1 h 30</option><option value="120">2 h</option><option value="180">3 h</option><option value="240">4 h</option><option value="300">5 h</option></select></label>
+        <label>Lieu<input type="text" id="eplace" maxlength="120" value="Golf Château de la Tournette, Nivelles"></label>
+        <label>Précision<input type="text" id="enote" maxlength="300" placeholder="Terrain, thème, point de rendez-vous"></label>
+        <div class="btnrow">
+          <button class="btn" type="submit" id="ebtn">Ajouter</button>
+          <button class="btn ghost" type="button" id="ecancel" hidden>Annuler</button>
+        </div>
+      </form>
+      <p class="msg" id="emsg"></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Historique des modifications <small>100 dernières</small></h2>
+    <ul class="hist" id="history"></ul>
+  </section>
+
+  <footer>Chaque ajout, correction ou suppression est enregistré avec le nom de son auteur.</footer>
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
