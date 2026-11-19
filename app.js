@@ -28,11 +28,12 @@ const ls = {
 const comboLabel = l => l.length === 2 && l[0] === "UK 1-9" && l[1] === "UK 10-18" ? "UK 1-18 complet" : l.length === 2 && l[0] === "US 1-9" && l[1] === "US 10-18" ? "US 1-18 complet" : l.join(" + ");
 
 const S = {
-  player: null, code: null, name: "", players: FALLBACK, pmap: {},
+  player: null, code: null, name: "", rights: [], players: FALLBACK, pmap: {},
   server: { matches: [], events: [], log: [] }, queue: [], errors: [],
   editMatch: null, editEvent: null, selected: "", busy: false, offline: false, lastSync: 0, loaded: false
 };
 function setPlayers(list) { S.players = list && list.length ? list : FALLBACK; S.pmap = {}; S.players.forEach(p => S.pmap[p.id] = p.name); }
+const canCal = () => S.rights.indexOf("calendrier") >= 0;
 const nameOf = id => S.pmap[id] || (id === "import" ? "Import initial" : id) || "Quelqu'un";
 
 /* ---------- réseau ---------- */
@@ -49,9 +50,9 @@ async function api(action, body) {
 function applyServer(r) {
   S.server = { matches: r.matches || [], events: r.events || [], log: r.log || [] };
   setPlayers(r.players);
-  if (r.me) S.name = r.me.name;
+  if (r.me) { S.name = r.me.name; S.rights = r.me.rights || []; }
   S.lastSync = Date.now(); S.offline = false;
-  ls.set("m2_cache", { server: S.server, players: S.players, name: S.name, ts: S.lastSync });
+  ls.set("m2_cache", { server: S.server, players: S.players, name: S.name, rights: S.rights, ts: S.lastSync });
 }
 
 /* ---------- file d'attente : saisies visibles tout de suite, envoyées dès que possible ---------- */
@@ -163,6 +164,7 @@ function renderAll() {
   const sig = S.players.map(p => p.id + ":" + p.name).join("|");
   if (sig !== S.pSig) { S.pSig = sig; fillPlayers(); }
   $("#meName").textContent = S.name || nameOf(S.player);
+  $("#eentry").hidden = !canCal(); $("#enote2").hidden = canCal();
   renderStatus(); renderNotices(); renderStats(); renderTable(); renderFiche(); renderGrid(); renderResults(); renderLoops(); renderEvents(); renderHistory();
 }
 function renderStatus() {
@@ -303,12 +305,12 @@ function renderEvents() {
       <b>${esc(e.title)}</b><span class="w">${esc(fmtDay(e.d))}${e.t ? " · " + esc(hh(e.t)) : " · toute la journée"}</span>
       ${e.place ? `<span class="m">${esc(e.place)}</span>` : ""}${e.note ? `<span class="m">${esc(e.note)}</span>` : ""}
       ${isPast ? "" : `<span class="acts">${calLinks(e)}</span>`}
-      <span class="acts"><button class="sm" data-eedit="${esc(e.id)}" type="button">Modifier</button><button class="sm del" data-edel="${esc(e.id)}" type="button">Supprimer</button>${e._pending ? '<span class="pend">en attente</span>' : ""}</span>
+      ${canCal() || e._pending ? `<span class="acts">${canCal() ? `<button class="sm" data-eedit="${esc(e.id)}" type="button">Modifier</button><button class="sm del" data-edel="${esc(e.id)}" type="button">Supprimer</button>` : ""}${e._pending ? '<span class="pend">en attente</span>' : ""}</span>` : ""}
       <span class="by">${by}</span></div>`;
   };
   $("#events").innerHTML = list.length
     ? `<div class="evs">${up.map(e => card(e, false)).join("")}${past.map(e => card(e, true)).join("")}</div>`
-    : '<div class="empty">Aucun événement pour l\'instant. Ajoutez le premier ci-dessous : entraînement avec Florian, match d\'équipe, repas…</div>';
+    : `<div class="empty">Aucun événement pour l'instant.${canCal() ? " Ajoutez le premier ci-dessous : entraînement avec Florian, match d'équipe, repas…" : ""}</div>`;
 }
 
 /* ---------- historique ---------- */
@@ -447,7 +449,7 @@ function boot() {
   $("#fdate").value = keyOf(new Date()); $("#edate").value = keyOf(new Date());
   refreshFormat();
   const cache = ls.get("m2_cache", null);
-  if (cache) { S.server = cache.server || S.server; setPlayers(cache.players); S.name = cache.name || ""; S.lastSync = cache.ts || 0; }
+  if (cache) { S.server = cache.server || S.server; setPlayers(cache.players); S.name = cache.name || ""; S.rights = cache.rights || []; S.lastSync = cache.ts || 0; }
   const auth = ls.get("m2_auth", null);
   if (auth && API_OK) {
     S.player = auth.player; S.code = auth.code; S.queue = S.queue.filter(q => q.player === S.player);
