@@ -160,6 +160,8 @@ let C = null, V = null;
 function renderAll() {
   if ($("#appView").hidden) return;
   V = view(); C = compute(V.matches);
+  const sig = S.players.map(p => p.id + ":" + p.name).join("|");
+  if (sig !== S.pSig) { S.pSig = sig; fillPlayers(); }
   $("#meName").textContent = S.name || nameOf(S.player);
   renderStatus(); renderNotices(); renderStats(); renderTable(); renderFiche(); renderGrid(); renderResults(); renderLoops(); renderEvents(); renderHistory();
 }
@@ -179,6 +181,7 @@ function renderStats() {
   const n18 = ms.filter(m => m.n === 18).length, n9 = played - n18;
   const left = Math.max(0, Math.round((parse(DEADLINE) - parse(keyOf(new Date()))) / 864e5));
   const lead = C.ranked[0];
+  $("#subCount").textContent = S.players.length + " joueurs, " + total + " paires";
   $("#stats").innerHTML =
     `<div class="stat"><b>${pairs} / ${total}</b><span>paires qui ont joué (${played} match${played > 1 ? "s" : ""})</span><div class="bar"><i style="width:${(pairs / total * 100).toFixed(1)}%"></i></div></div>
      <div class="stat"><b>${left}</b><span>jours avant le 11 avril 2027</span></div>
