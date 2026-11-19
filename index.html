@@ -51,7 +51,6 @@
         <h1>M2 2027</h1>
       </div>
     </div>
-    <p class="sub">Matchplays en un contre un, tout le monde contre tout le monde : <span id="subCount">14 joueurs, 91 paires</span>. Un match de 9 trous vaut 1 point, un match de 18 trous 2 points (égalité : la moitié). Deux joueurs peuvent jouer un match de 18 trous ou deux matchs de 9 trous. Dernière date pour jouer : dimanche 11 avril 2027.</p>
     <div class="userbar">
       <span>Connecté : <b id="meName"></b></span>
       <button class="link" id="refreshBtn" type="button">Actualiser</button>
@@ -59,14 +58,43 @@
       <span class="sync" id="sync"></span>
     </div>
     <div id="notices"></div>
+    <details class="rulesbox" id="rules">
+      <summary>Règles du jeu</summary>
+      <p class="sub">Matchplays en un contre un, tout le monde contre tout le monde : <span id="subCount">14 joueurs, 91 paires</span>. Un match de 9 trous vaut 1 point, un match de 18 trous 2 points (égalité : la moitié). Deux joueurs peuvent jouer un match de 18 trous ou deux matchs de 9 trous. Dernière date pour jouer : dimanche 11 avril 2027.</p>
+    </details>
+    <button class="btn quick" id="quickAdd" type="button">+ Saisir un résultat</button>
   </header>
 
   <div class="stats" id="stats"></div>
 
-  <section>
-    <h2>Classement <small id="upd"></small></h2>
-    <div class="scroll"><table id="table"></table></div>
-    <p class="muted">Départage : confrontation directe entre joueurs à égalité, puis nombre de victoires. Touchez un nom pour ouvrir sa fiche.</p>
+  <nav class="jump" id="jump" aria-label="Aller à">
+    <button type="button" data-jump="sec-results">Résultats</button>
+    <button type="button" data-jump="sec-cal">Calendrier</button>
+    <button type="button" data-jump="fiche">Fiche</button>
+    <button type="button" data-jump="sec-grid">Tableau</button>
+  </nav>
+
+  <details class="fold" id="sec-rank">
+    <summary>
+      <div class="sh"><span class="st">Classement</span><small id="upd"></small></div>
+      <div class="sl" id="rankLine"></div>
+    </summary>
+    <div class="body">
+      <div class="scroll"><table id="table"></table></div>
+      <p class="muted">Départage : confrontation directe entre joueurs à égalité, puis nombre de victoires. Touchez un nom pour ouvrir sa fiche.</p>
+    </div>
+  </details>
+
+  <section id="sec-results">
+    <h2>Derniers résultats <small id="rcount"></small></h2>
+    <ul class="res" id="results"></ul>
+    <button class="link" id="moreRes" type="button" hidden></button>
+  </section>
+
+  <section id="sec-cal">
+    <h2>Calendrier <small>À venir</small></h2>
+    <div id="events"></div>
+    <p class="muted" id="enote2" hidden>L'ajout et la modification des événements sont réservés à certains joueurs. Vous pouvez les consulter et les ajouter à votre agenda.</p>
   </section>
 
   <section id="fiche">
@@ -75,7 +103,7 @@
     <div id="fiche-body"></div>
   </section>
 
-  <section>
+  <section id="sec-grid">
     <h2>Tableau des rencontres</h2>
     <div class="scroll"><table class="x" id="grid"></table></div>
     <div class="legend">
@@ -85,41 +113,29 @@
     </div>
   </section>
 
-  <section class="entry" id="entry">
-    <h2 style="border-top:0;padding-top:0" id="mtitle">Saisir un résultat</h2>
-    <form class="form" id="mform">
-      <label>Joueur 1<select id="fa" required></select></label>
-      <label>Joueur 2<select id="fb" required></select></label>
-      <label>Format<select id="ffmt"><option value="9">9 trous</option><option value="18">18 trous</option></select></label>
-      <label>Terrain<select id="floop"></select></label>
-      <label>Résultat<select id="fres"></select></label>
-      <label id="scorewrap">Score<select id="fscore"></select></label>
-      <label>Date<input type="date" id="fdate" required></label>
-      <div class="btnrow">
-        <button class="btn" type="submit" id="fbtn">Enregistrer</button>
-        <button class="btn ghost" type="button" id="fcancel" hidden>Annuler</button>
-      </div>
-    </form>
-    <p class="msg" id="fmsg"></p>
-  </section>
+  <details class="fold" id="entry">
+    <summary><div class="sh"><span class="st" id="mtitle">Saisir un résultat</span></div></summary>
+    <div class="body entry">
+      <form class="form" id="mform">
+        <label>Joueur 1<select id="fa" required></select></label>
+        <label>Joueur 2<select id="fb" required></select></label>
+        <label>Format<select id="ffmt"><option value="9">9 trous</option><option value="18">18 trous</option></select></label>
+        <label>Terrain<select id="floop"></select></label>
+        <label>Résultat<select id="fres"></select></label>
+        <label id="scorewrap">Score<select id="fscore"></select></label>
+        <label>Date<input type="date" id="fdate" required></label>
+        <div class="btnrow">
+          <button class="btn" type="submit" id="fbtn">Enregistrer</button>
+          <button class="btn ghost" type="button" id="fcancel" hidden>Annuler</button>
+        </div>
+      </form>
+      <p class="msg" id="fmsg"></p>
+    </div>
+  </details>
 
-  <section>
-    <h2>Derniers résultats <small id="rcount"></small></h2>
-    <ul class="res" id="results"></ul>
-  </section>
-
-  <section>
-    <h2>Terrains joués</h2>
-    <div class="loops" id="loops"></div>
-    <p class="muted">Un match de 9 trous compte pour un terrain, un match de 18 trous pour deux.</p>
-  </section>
-
-  <section>
-    <h2>Calendrier <small>Entraînements, matchs, repas d'équipe</small></h2>
-    <div id="events"></div>
-    <p class="muted" id="enote2" hidden>L'ajout et la modification des événements sont réservés à certains joueurs. Vous pouvez les consulter et les ajouter à votre agenda.</p>
-    <div class="entry" id="eentry">
-      <h3 id="etitle">Ajouter un événement</h3>
+  <details class="fold" id="eentry" hidden>
+    <summary><div class="sh"><span class="st" id="etitle">Ajouter un événement</span></div></summary>
+    <div class="body entry">
       <form class="form" id="eform">
         <label>Titre<input type="text" id="etitleIn" maxlength="80" list="esuggest" required placeholder="Entraînement avec Florian"></label>
         <datalist id="esuggest"><option value="Entraînement avec Florian"><option value="Match d'équipe"><option value="Réunion d'équipe"><option value="Repas d'équipe"></datalist>
@@ -135,12 +151,14 @@
       </form>
       <p class="msg" id="emsg"></p>
     </div>
-  </section>
+  </details>
 
-  <section>
-    <h2>Historique des modifications <small>100 dernières</small></h2>
-    <ul class="hist" id="history"></ul>
-  </section>
+  <details class="fold" id="sec-hist">
+    <summary><div class="sh"><span class="st">Historique des modifications</span><small>100 dernières</small></div></summary>
+    <div class="body">
+      <ul class="hist" id="history"></ul>
+    </div>
+  </details>
 
   <footer>Chaque ajout, correction ou suppression est enregistré avec le nom de son auteur.</footer>
 </main>

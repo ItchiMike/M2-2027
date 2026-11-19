@@ -96,6 +96,7 @@ async function flush() {
 
 /* ---------- connexion ---------- */
 function showLogin(msg) {
+  S.selected = ""; S.selTouched = false;
   $("#appView").hidden = true; $("#loginView").hidden = false;
   $("#lmsg").textContent = msg || ""; $("#lmsg").className = "msg" + (msg ? " err" : "");
   fillPlayers();
@@ -161,11 +162,13 @@ let C = null, V = null;
 function renderAll() {
   if ($("#appView").hidden) return;
   V = view(); C = compute(V.matches);
+  if (!S.selTouched && !S.selected && S.player) S.selected = S.player; // la fiche s'ouvre sur le joueur connecté
   const sig = S.players.map(p => p.id + ":" + p.name).join("|");
   if (sig !== S.pSig) { S.pSig = sig; fillPlayers(); }
+  if ($("#pick").value !== S.selected) $("#pick").value = S.selected;
   $("#meName").textContent = S.name || nameOf(S.player);
   $("#eentry").hidden = !canCal(); $("#enote2").hidden = canCal();
-  renderStatus(); renderNotices(); renderStats(); renderTable(); renderFiche(); renderGrid(); renderResults(); renderLoops(); renderEvents(); renderHistory();
+  renderStatus(); renderNotices(); renderStats(); renderTable(); renderFiche(); renderGrid(); renderResults(); renderEvents(); renderHistory();
 }
 function renderStatus() {
   const el = $("#sync"); if (!el) return;
@@ -198,6 +201,11 @@ function renderTable() {
   $("#table").innerHTML = h + "</tbody>";
   const last = V.matches.map(m => m.d).sort().pop();
   $("#upd").textContent = last ? "dernier match le " + fmtShort(last) : "";
+  // ligne de résumé visible quand le classement est replié
+  const played = C.ranked.filter(s => s.p), me = C.by[S.player];
+  const top = played.slice(0, 3).map(s => `${s.rank}. ${esc(s.name)} ${pts(s.pts)} pt${s.pts > 1 ? "s" : ""}`).join(" · ");
+  const mine = me && me.p ? `Vous : <b>${me.rank === 1 ? "1er" : me.rank + "e"}</b> (${pts(me.pts)} pt${me.pts > 1 ? "s" : ""})` : "Vous : pas encore de match";
+  $("#rankLine").innerHTML = played.length ? top + " · " + mine : "Aucun match joué pour l'instant.";
 }
 function renderFiche() {
   const box = $("#fiche-body");
@@ -233,8 +241,11 @@ function renderGrid() {
   $("#grid").innerHTML = h + "</tbody>";
 }
 function renderResults() {
-  const list = V.matches.slice().sort((a, b) => (b.d || "").localeCompare(a.d || "") || String(b.at).localeCompare(String(a.at)));
-  $("#rcount").textContent = list.length ? list.length + " match" + (list.length > 1 ? "s" : "") : "";
+  const all = V.matches.slice().sort((a, b) => (b.d || "").localeCompare(a.d || "") || String(b.at).localeCompare(String(a.at)));
+  const list = S.showAll ? all : all.slice(0, 5);
+  $("#rcount").textContent = all.length ? all.length + " match" + (all.length > 1 ? "s" : "") : "";
+  const more = $("#moreRes"); more.hidden = all.length <= 5;
+  more.textContent = S.showAll ? "Voir seulement les 5 derniers" : "Voir tous les résultats (" + all.length + ")";
   if (!list.length) { $("#results").innerHTML = '<li style="display:block"><div class="empty">Aucun résultat enregistré. Le premier match apparaîtra ici dès qu\'il sera saisi.</div></li>'; return; }
   $("#results").innerHTML = list.map(m => {
     const who = m.w === "h" ? `<b>${esc(nameOf(m.a))}</b> – <b>${esc(nameOf(m.b))}</b>` : `<b>${esc(nameOf(m.w === "a" ? m.a : m.b))}</b> bat ${esc(nameOf(m.w === "a" ? m.b : m.a))}`;
@@ -244,12 +255,6 @@ function renderResults() {
       <span class="meta">${m.n} trous · ${esc(comboLabel(m.loops))} · ${by}${up}${m._pending ? ' <span class="pend">en attente</span>' : ""}
       <button class="sm" data-medit="${esc(m.id)}" type="button">Modifier</button><button class="sm del" data-mdel="${esc(m.id)}" type="button">Supprimer</button></span></li>`;
   }).join("");
-}
-function renderLoops() {
-  const cnt = {}; LOOPS.forEach(l => cnt[l] = 0);
-  V.matches.forEach(m => (m.loops || []).forEach(l => { if (l in cnt) cnt[l]++; }));
-  const max = Math.max(1, ...Object.values(cnt));
-  $("#loops").innerHTML = LOOPS.map(l => `<div class="loop"><b>${l}</b><div class="track"><i style="width:${(cnt[l] / max * 100).toFixed(1)}%;background:var(${l.startsWith("UK") ? "--uk" : "--us"})"></i></div><span class="n">${cnt[l]}</span></div>`).join("");
 }
 
 /* ---------- calendrier : liens Google, Outlook, Apple ---------- */
@@ -297,7 +302,7 @@ function calLinks(e) {
 function renderEvents() {
   const today = keyOf(new Date());
   const list = V.events.slice().sort((a, b) => (a.d + (a.t || "")).localeCompare(b.d + (b.t || "")));
-  const up = list.filter(e => e.d >= today), past = list.filter(e => e.d < today).reverse();
+  const up = list.filter(e => e.d >= today); // un événement disparaît le lendemain de sa date
   const nextId = up[0] && up[0].id;
   const card = (e, isPast) => {
     const by = e.by ? `Ajouté par ${esc(nameOf(e.by))}${e.uby ? " · modifié par " + esc(nameOf(e.uby)) : ""}` : "";
@@ -308,9 +313,9 @@ function renderEvents() {
       ${canCal() || e._pending ? `<span class="acts">${canCal() ? `<button class="sm" data-eedit="${esc(e.id)}" type="button">Modifier</button><button class="sm del" data-edel="${esc(e.id)}" type="button">Supprimer</button>` : ""}${e._pending ? '<span class="pend">en attente</span>' : ""}</span>` : ""}
       <span class="by">${by}</span></div>`;
   };
-  $("#events").innerHTML = list.length
-    ? `<div class="evs">${up.map(e => card(e, false)).join("")}${past.map(e => card(e, true)).join("")}</div>`
-    : `<div class="empty">Aucun événement pour l'instant.${canCal() ? " Ajoutez le premier ci-dessous : entraînement avec Florian, match d'équipe, repas…" : ""}</div>`;
+  $("#events").innerHTML = up.length
+    ? `<div class="evs">${up.map(e => card(e, false)).join("")}</div>`
+    : `<div class="empty">Aucun événement à venir.${canCal() ? " Utilisez « Ajouter un événement » plus bas : entraînement avec Florian, match d'équipe, repas…" : ""}</div>`;
 }
 
 /* ---------- historique ---------- */
@@ -379,6 +384,7 @@ function editMatch(m) {
   refreshResult(); $("#fres").value = m.w; $("#scorewrap").hidden = m.w === "h";
   if (m.w !== "h") $("#fscore").value = m.s;
   $("#fdate").value = m.d; say($("#fmsg"), "");
+  $("#entry").open = true;
   $("#entry").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 $("#mform").addEventListener("submit", e => {
@@ -406,6 +412,7 @@ function editEvent(ev) {
   $("#etitleIn").value = ev.title; $("#edate").value = ev.d; $("#etime").value = ev.t || ""; $("#edur").value = String(ev.dur || 60);
   if (![...$("#edur").options].some(o => o.value === String(ev.dur))) $("#edur").insertAdjacentHTML("beforeend", `<option value="${esc(ev.dur)}">${esc(ev.dur)} min</option>`), $("#edur").value = String(ev.dur);
   $("#eplace").value = ev.place || ""; $("#enote").value = ev.note || ""; say($("#emsg"), "");
+  $("#eentry").open = true;
   $("#eentry").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 $("#eform").addEventListener("submit", e => {
@@ -422,11 +429,21 @@ $("#fa").addEventListener("change", refreshResult);
 $("#fb").addEventListener("change", refreshResult);
 $("#fres").addEventListener("change", () => { $("#scorewrap").hidden = $("#fres").value === "h"; });
 $("#ffmt").addEventListener("change", refreshFormat);
-$("#pick").addEventListener("change", e => { S.selected = e.target.value; renderFiche(); });
+$("#pick").addEventListener("change", e => { S.selected = e.target.value; S.selTouched = true; renderFiche(); });
+$("#quickAdd").addEventListener("click", () => {
+  const d = $("#entry"); d.open = true;
+  d.scrollIntoView({ behavior: "smooth", block: "start" });
+  setTimeout(() => $("#fb").focus({ preventScroll: true }), 350);
+});
+$("#jump").addEventListener("click", e => {
+  const b = e.target.closest("[data-jump]"); if (!b) return;
+  const t = document.getElementById(b.dataset.jump); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("#moreRes").addEventListener("click", () => { S.showAll = !S.showAll; renderResults(); });
 
 document.addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t) return;
-  if (t.dataset.pick) { S.selected = t.dataset.pick; $("#pick").value = S.selected; renderFiche(); $("#fiche").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  if (t.dataset.pick) { S.selected = t.dataset.pick; S.selTouched = true; $("#pick").value = S.selected; renderFiche(); $("#fiche").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   if (t.dataset.medit) { const m = V.matches.find(x => x.id === t.dataset.medit); if (m) editMatch(m); return; }
   if (t.dataset.eedit) { const ev = V.events.find(x => x.id === t.dataset.eedit); if (ev) editEvent(ev); return; }
   if (t.dataset.dismiss !== undefined) { S.errors.splice(+t.dataset.dismiss, 1); renderNotices(); return; }
