@@ -156,3 +156,18 @@ select,input{font:inherit;font-size:16px;color:var(--fg);background:var(--bg);bo
 select:focus-visible,input:focus-visible,.btn:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
 footer{font-size:12.5px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+/* fenêtres de saisie */
+.modal{border:2px solid var(--accent);border-radius:10px;background:var(--surface);color:var(--fg);padding:0;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.modal::backdrop{background:rgba(6,20,12,.6)}
+.mhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px 8px;position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line)}
+.mhead h2{margin:0;font-family:var(--display);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:26px;line-height:1.1;color:var(--accent)}
+.mclose{font:inherit;font-size:20px;line-height:1;cursor:pointer;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:transparent;color:var(--fg);flex:none}
+.mbody{padding:16px;display:flex;flex-direction:column;gap:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(24px,calc(env(safe-area-inset-bottom,0px) + 16px));background:var(--accent);color:var(--on-accent);font-weight:700;padding:12px 18px;border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:50;max-width:calc(100vw - 32px);text-align:center}
+.mhead h2{border-top:0;padding-top:0}
+
+.links{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.links a{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:10px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--accent);font-weight:700;text-decoration:none}
+.links a::after{content:"↗";font-weight:600;color:var(--muted)}
+.links a:focus-visible{outline:2px solid var(--flag);outline-offset:2px}

@@ -68,10 +68,11 @@
   <div class="stats" id="stats"></div>
 
   <nav class="jump" id="jump" aria-label="Aller à">
-    <button type="button" data-jump="sec-results">Résultats</button>
     <button type="button" data-jump="sec-cal">Calendrier</button>
+    <button type="button" data-jump="sec-results">Résultats</button>
     <button type="button" data-jump="fiche">Fiche</button>
     <button type="button" data-jump="sec-grid">Tableau</button>
+    <button type="button" data-jump="sec-links">Liens</button>
   </nav>
 
   <details class="fold" id="sec-rank">
@@ -85,16 +86,17 @@
     </div>
   </details>
 
+  <section id="sec-cal">
+    <h2>Calendrier <small>À venir</small></h2>
+    <button class="btn quick" id="eAdd" type="button" hidden>+ Ajouter un événement</button>
+    <div id="events"></div>
+    <p class="muted" id="enote2" hidden>L'ajout et la modification des événements sont réservés à certains joueurs. Vous pouvez les consulter et les ajouter à votre agenda.</p>
+  </section>
+
   <section id="sec-results">
     <h2>Derniers résultats <small id="rcount"></small></h2>
     <ul class="res" id="results"></ul>
     <button class="link" id="moreRes" type="button" hidden></button>
-  </section>
-
-  <section id="sec-cal">
-    <h2>Calendrier <small>À venir</small></h2>
-    <div id="events"></div>
-    <p class="muted" id="enote2" hidden>L'ajout et la modification des événements sont réservés à certains joueurs. Vous pouvez les consulter et les ajouter à votre agenda.</p>
   </section>
 
   <section id="fiche">
@@ -113,9 +115,17 @@
     </div>
   </section>
 
-  <details class="fold" id="entry">
-    <summary><div class="sh"><span class="st" id="mtitle">Saisir un résultat</span></div></summary>
-    <div class="body entry">
+  <section id="sec-links">
+    <h2>Liens utiles</h2>
+    <ul class="links">
+      <!-- Pour ajouter un lien : copiez la ligne ci-dessous, puis changez l'adresse (href) et le nom affiché. -->
+      <li><a href="https://www.randa.org/fr-FR/rog/the-rules-of-golf" target="_blank" rel="noopener noreferrer">Règles de golf</a></li>
+    </ul>
+  </section>
+
+  <dialog class="modal" id="entry" aria-labelledby="mtitle">
+    <div class="mhead"><h2 id="mtitle">Saisir un résultat</h2><button class="mclose" type="button" data-close="entry" aria-label="Fermer">✕</button></div>
+    <div class="mbody">
       <form class="form" id="mform">
         <label>Joueur 1<select id="fa" required></select></label>
         <label>Joueur 2<select id="fb" required></select></label>
@@ -126,16 +136,16 @@
         <label>Date<input type="date" id="fdate" required></label>
         <div class="btnrow">
           <button class="btn" type="submit" id="fbtn">Enregistrer</button>
-          <button class="btn ghost" type="button" id="fcancel" hidden>Annuler</button>
+          <button class="btn ghost" type="button" id="fcancel">Annuler</button>
         </div>
       </form>
       <p class="msg" id="fmsg"></p>
     </div>
-  </details>
+  </dialog>
 
-  <details class="fold" id="eentry" hidden>
-    <summary><div class="sh"><span class="st" id="etitle">Ajouter un événement</span></div></summary>
-    <div class="body entry">
+  <dialog class="modal" id="eentry" aria-labelledby="etitle">
+    <div class="mhead"><h2 id="etitle">Ajouter un événement</h2><button class="mclose" type="button" data-close="eentry" aria-label="Fermer">✕</button></div>
+    <div class="mbody">
       <form class="form" id="eform">
         <label>Titre<input type="text" id="etitleIn" maxlength="80" list="esuggest" required placeholder="Entraînement avec Florian"></label>
         <datalist id="esuggest"><option value="Entraînement avec Florian"><option value="Match d'équipe"><option value="Réunion d'équipe"><option value="Repas d'équipe"></datalist>
@@ -146,12 +156,12 @@
         <label>Précision<input type="text" id="enote" maxlength="300" placeholder="Terrain, thème, point de rendez-vous"></label>
         <div class="btnrow">
           <button class="btn" type="submit" id="ebtn">Ajouter</button>
-          <button class="btn ghost" type="button" id="ecancel" hidden>Annuler</button>
+          <button class="btn ghost" type="button" id="ecancel">Annuler</button>
         </div>
       </form>
       <p class="msg" id="emsg"></p>
     </div>
-  </details>
+  </dialog>
 
   <details class="fold" id="sec-hist">
     <summary><div class="sh"><span class="st">Historique des modifications</span><small>100 dernières</small></div></summary>
@@ -165,5 +175,6 @@
 
 <script src="config.js"></script>
 <script src="app.js"></script>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

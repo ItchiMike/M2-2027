@@ -167,7 +167,8 @@ function renderAll() {
   if (sig !== S.pSig) { S.pSig = sig; fillPlayers(); }
   if ($("#pick").value !== S.selected) $("#pick").value = S.selected;
   $("#meName").textContent = S.name || nameOf(S.player);
-  $("#eentry").hidden = !canCal(); $("#enote2").hidden = canCal();
+  $("#eAdd").hidden = !canCal(); $("#enote2").hidden = canCal();
+  if (!canCal() && $("#eentry").open) $("#eentry").close();
   renderStatus(); renderNotices(); renderStats(); renderTable(); renderFiche(); renderGrid(); renderResults(); renderEvents(); renderHistory();
 }
 function renderStatus() {
@@ -371,9 +372,30 @@ function refreshFormat() {
   const ch = n === 18 ? COMBOS : LOOPS.map(l => [l]);
   $("#floop").innerHTML = ch.map((c, i) => `<option value="${i}">${esc(comboLabel(c))}</option>`).join("");
 }
+
+/* ---------- fenêtres (formulaires) ---------- */
+function openModal(id) {
+  const d = document.getElementById(id);
+  if (!d.open) d.showModal();
+}
+document.addEventListener("click", e => {
+  const x = e.target.closest("[data-close]"); if (x) { document.getElementById(x.dataset.close).close(); return; }
+  const d = e.target; // clic sur le fond sombre = fermer
+  if (d instanceof HTMLDialogElement && d.open) {
+    const r = d.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close();
+  }
+});
+$("#entry").addEventListener("close", () => { resetMatchForm(); say($("#fmsg"), ""); });
+$("#eentry").addEventListener("close", () => { resetEventForm(); say($("#emsg"), ""); });
+let toastT;
+function toast(t) {
+  const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(toastT);
+  toastT = setTimeout(() => { el.hidden = true; }, 3500);
+}
 function say(el, t, cls) { el.textContent = t || ""; el.className = "msg" + (cls ? " " + cls : ""); }
 function resetMatchForm() {
-  S.editMatch = null; $("#mtitle").textContent = "Saisir un résultat"; $("#fbtn").textContent = "Enregistrer"; $("#fcancel").hidden = true;
+  S.editMatch = null; $("#mtitle").textContent = "Saisir un résultat"; $("#fbtn").textContent = "Enregistrer"; $("#fcancel").hidden = false;
   $("#fa").value = S.player || ""; $("#fb").value = ""; $("#fdate").value = keyOf(new Date()); refreshResult();
 }
 function editMatch(m) {
@@ -384,8 +406,7 @@ function editMatch(m) {
   refreshResult(); $("#fres").value = m.w; $("#scorewrap").hidden = m.w === "h";
   if (m.w !== "h") $("#fscore").value = m.s;
   $("#fdate").value = m.d; say($("#fmsg"), "");
-  $("#entry").open = true;
-  $("#entry").scrollIntoView({ behavior: "smooth", block: "start" });
+  openModal("entry");
 }
 $("#mform").addEventListener("submit", e => {
   e.preventDefault();
@@ -398,13 +419,13 @@ $("#mform").addEventListener("submit", e => {
   if (!obj.d) return say(m, "Choisissez la date.", "err");
   if (pairUnits(V.matches, a, b, S.editMatch) + n / 9 > 2) return say(m, nameOf(a) + " et " + nameOf(b) + " ont déjà joué : un match de 18 trous ou deux matchs de 9 trous au maximum. Corrigez ou supprimez un match existant.", "err");
   enqueue(S.editMatch ? "updateMatch" : "addMatch", obj);
-  say(m, S.editMatch ? "Résultat corrigé." : "Résultat enregistré : " + nameOf(a) + " – " + nameOf(b) + ".", "ok");
-  resetMatchForm();
+  toast(S.editMatch ? "Résultat corrigé." : "Résultat enregistré : " + nameOf(a) + " – " + nameOf(b) + ".");
+  resetMatchForm(); say(m, ""); $("#entry").close();
 });
-$("#fcancel").addEventListener("click", () => { resetMatchForm(); say($("#fmsg"), ""); });
+$("#fcancel").addEventListener("click", () => $("#entry").close());
 
 function resetEventForm() {
-  S.editEvent = null; $("#etitle").textContent = "Ajouter un événement"; $("#ebtn").textContent = "Ajouter"; $("#ecancel").hidden = true;
+  S.editEvent = null; $("#etitle").textContent = "Ajouter un événement"; $("#ebtn").textContent = "Ajouter"; $("#ecancel").hidden = false;
   $("#etitleIn").value = ""; $("#etime").value = ""; $("#edur").value = "60"; $("#eplace").value = "Golf Château de la Tournette, Nivelles"; $("#enote").value = ""; $("#edate").value = keyOf(new Date());
 }
 function editEvent(ev) {
@@ -412,29 +433,25 @@ function editEvent(ev) {
   $("#etitleIn").value = ev.title; $("#edate").value = ev.d; $("#etime").value = ev.t || ""; $("#edur").value = String(ev.dur || 60);
   if (![...$("#edur").options].some(o => o.value === String(ev.dur))) $("#edur").insertAdjacentHTML("beforeend", `<option value="${esc(ev.dur)}">${esc(ev.dur)} min</option>`), $("#edur").value = String(ev.dur);
   $("#eplace").value = ev.place || ""; $("#enote").value = ev.note || ""; say($("#emsg"), "");
-  $("#eentry").open = true;
-  $("#eentry").scrollIntoView({ behavior: "smooth", block: "start" });
+  openModal("eentry");
 }
 $("#eform").addEventListener("submit", e => {
   e.preventDefault();
   const title = $("#etitleIn").value.trim(), d = $("#edate").value;
   if (!title || !d) return say($("#emsg"), "Indiquez un titre et une date.", "err");
   enqueue(S.editEvent ? "updateEvent" : "addEvent", { id: S.editEvent || uid(), d, t: $("#etime").value, dur: +$("#edur").value, title, place: $("#eplace").value.trim(), note: $("#enote").value.trim() });
-  say($("#emsg"), S.editEvent ? "Événement modifié." : "Événement ajouté.", "ok");
-  resetEventForm();
+  toast(S.editEvent ? "Événement modifié." : "Événement ajouté.");
+  resetEventForm(); say($("#emsg"), ""); $("#eentry").close();
 });
-$("#ecancel").addEventListener("click", () => { resetEventForm(); say($("#emsg"), ""); });
+$("#ecancel").addEventListener("click", () => $("#eentry").close());
 
 $("#fa").addEventListener("change", refreshResult);
 $("#fb").addEventListener("change", refreshResult);
 $("#fres").addEventListener("change", () => { $("#scorewrap").hidden = $("#fres").value === "h"; });
 $("#ffmt").addEventListener("change", refreshFormat);
 $("#pick").addEventListener("change", e => { S.selected = e.target.value; S.selTouched = true; renderFiche(); });
-$("#quickAdd").addEventListener("click", () => {
-  const d = $("#entry"); d.open = true;
-  d.scrollIntoView({ behavior: "smooth", block: "start" });
-  setTimeout(() => $("#fb").focus({ preventScroll: true }), 350);
-});
+$("#quickAdd").addEventListener("click", () => { resetMatchForm(); say($("#fmsg"), ""); openModal("entry"); });
+$("#eAdd").addEventListener("click", () => { resetEventForm(); say($("#emsg"), ""); openModal("eentry"); });
 $("#jump").addEventListener("click", e => {
   const b = e.target.closest("[data-jump]"); if (!b) return;
   const t = document.getElementById(b.dataset.jump); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
