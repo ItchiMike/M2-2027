@@ -1,6 +1,6 @@
 /* Service worker : garde l'application disponible hors connexion.
    Changez le numéro de version quand vous mettez à jour les fichiers. */
-const V = "m2-2027-v6";
+const V = "m2-2027-v7";
 const ASSETS = ["./", "index.html", "styles.css", "app.js", "config.js", "manifest.webmanifest", "logo-mask.png", "icon-192.png"];
 
 self.addEventListener("install", e => {

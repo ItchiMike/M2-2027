@@ -183,15 +183,22 @@ function renderNotices() {
 }
 function renderStats() {
   const ms = V.matches, played = ms.length;
-  const pairs = new Set(ms.map(m => [m.a, m.b].sort().join("|"))).size, total = S.players.length * (S.players.length - 1) / 2;
+  const total = S.players.length * (S.players.length - 1) / 2;
   const left = Math.max(0, Math.round((parse(DEADLINE) - parse(keyOf(new Date()))) / 864e5));
-  const lead = C.ranked[0];
   $("#subCount").textContent = S.players.length + " joueurs, " + total + " paires";
+  const me = C.by[S.player], first = (S.name || nameOf(S.player) || "").split(" ")[0];
+  $("#meHello").textContent = first;
+  if (!me) { $("#stats").innerHTML = '<p class="muted">Chargement…</p>'; return; }
+  const never = S.players.filter(p => p.id !== S.player && !me.opp[p.id]).sort((a, b) => a.name.localeCompare(b.name, "fr"));
+  const shown = never.slice(0, 6);
+  const mine = ms.filter(m => m.a === S.player || m.b === S.player).sort((a, b) => (b.d || "").localeCompare(a.d || "") || String(b.at).localeCompare(String(a.at)))[0];
+  const rankTxt = me.p ? `${me.rank === 1 ? "1er" : me.rank + "e"} <small>sur ${S.players.length}</small>` : `– <small>sur ${S.players.length}</small>`;
+  const lastTxt = mine ? `<div class="lastres"><span>Dernier résultat · ${esc(fmtShort(mine.d))}<br><b>${mine.w === "h" ? esc(nameOf(mine.a)) + " – " + esc(nameOf(mine.b)) : esc(nameOf(mine.w === "a" ? mine.a : mine.b)) + " bat " + esc(nameOf(mine.w === "a" ? mine.b : mine.a))}</b></span><span class="s">${mine.w === "h" ? "AS" : esc(mine.s)}</span></div>` : "";
   $("#stats").innerHTML =
-    `<div class="stat"><b>${pairs} / ${total}</b><span>paires qui ont joué (${played} match${played > 1 ? "s" : ""})</span><div class="bar"><i style="width:${(pairs / total * 100).toFixed(1)}%"></i></div></div>
-     <div class="stat"><b>${left}</b><span>jours avant le 28 mars 2027</span></div>
-     <div class="stat"><b>${Math.max(0, total - played)}</b><span>match${total - played > 1 ? "s" : ""} de 18 trous restant${total - played > 1 ? "s" : ""} à jouer</span></div>
-     <div class="stat"><b>${lead && lead.p ? esc(lead.name) : "–"}</b><span>${lead && lead.p ? "en tête avec " + pts(lead.pts) + " pt" + (lead.pts > 1 ? "s" : "") : "aucun match joué pour l'instant"}</span></div>`;
+    `<div class="me-top"><div class="me-rank">${rankTxt}</div><div class="me-pts"><b>${pts(me.pts)} pt${me.pts > 1 ? "s" : ""}</b><span>${me.p} match${me.p > 1 ? "s" : ""} joué${me.p > 1 ? "s" : ""}</span></div></div>
+     <div class="team"><span>Équipe : <b>${played} / ${total}</b> matchs joués · <b>J-${left}</b></span><div class="bar"><i style="width:${(played / total * 100).toFixed(1)}%"></i></div><span>Dernière date pour jouer : 28 mars 2027</span></div>
+     <div><h3>À affronter · ${never.length} adversaire${never.length > 1 ? "s" : ""} restant${never.length > 1 ? "s" : ""}</h3>${never.length ? `<div class="vs">${shown.map(p => `<button type="button" data-vs="${esc(p.id)}">${esc(p.name)}</button>`).join("")}${never.length > shown.length ? `<span class="vsmore">+ ${never.length - shown.length}</span>` : ""}</div>` : '<p class="muted">Vous avez joué contre tout le monde. Bravo !</p>'}</div>
+     ${lastTxt}`;
 }
 function renderTable() {
   let h = `<thead><tr><th>#</th><th class="name">Joueur</th><th title="Matchs joués">J</th><th title="Victoires">V</th><th title="Égalités">AS</th><th title="Défaites">D</th><th>Pts</th><th title="Adversaires rencontrés">Adv.</th></tr></thead><tbody>`;
@@ -201,11 +208,6 @@ function renderTable() {
   $("#table").innerHTML = h + "</tbody>";
   const last = V.matches.map(m => m.d).sort().pop();
   $("#upd").textContent = last ? "dernier match le " + fmtShort(last) : "";
-  // ligne de résumé visible quand le classement est replié
-  const played = C.ranked.filter(s => s.p), me = C.by[S.player];
-  const top = played.slice(0, 3).map(s => `${s.rank}. ${esc(s.name)} ${pts(s.pts)} pt${s.pts > 1 ? "s" : ""}`).join(" · ");
-  const mine = me && me.p ? `Vous : <b>${me.rank === 1 ? "1er" : me.rank + "e"}</b> (${pts(me.pts)} pt${me.pts > 1 ? "s" : ""})` : "Vous : pas encore de match";
-  $("#rankLine").innerHTML = played.length ? top + " · " + mine : "Aucun match joué pour l'instant.";
 }
 function renderFiche() {
   const box = $("#fiche-body");
@@ -444,16 +446,14 @@ $("#fa").addEventListener("change", refreshResult);
 $("#fb").addEventListener("change", refreshResult);
 $("#fres").addEventListener("change", () => { $("#scorewrap").hidden = $("#fres").value === "h"; });
 $("#pick").addEventListener("change", e => { S.selected = e.target.value; S.selTouched = true; renderFiche(); });
-$("#quickAdd").addEventListener("click", () => { resetMatchForm(); say($("#fmsg"), ""); openModal("entry"); });
+$("#fab").addEventListener("click", () => { resetMatchForm(); say($("#fmsg"), ""); openModal("entry"); });
 $("#eAdd").addEventListener("click", () => { resetEventForm(); say($("#emsg"), ""); openModal("eentry"); });
-$("#jump").addEventListener("click", e => {
-  const b = e.target.closest("[data-jump]"); if (!b) return;
-  const t = document.getElementById(b.dataset.jump); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
-});
 $("#moreRes").addEventListener("click", () => { S.showAll = !S.showAll; renderResults(); });
 
 document.addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.go) { setTab(t.dataset.go); return; }
+  if (t.dataset.vs) { resetMatchForm(); say($("#fmsg"), ""); $("#fb").value = t.dataset.vs; refreshResult(); openModal("entry"); return; }
   if (t.dataset.pick) { S.selected = t.dataset.pick; S.selTouched = true; $("#pick").value = S.selected; renderFiche(); $("#fiche").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   if (t.dataset.medit) { const m = V.matches.find(x => x.id === t.dataset.medit); if (m) editMatch(m); return; }
   if (t.dataset.eedit) { const ev = V.events.find(x => x.id === t.dataset.eedit); if (ev) editEvent(ev); return; }
@@ -471,7 +471,16 @@ document.addEventListener("click", e => {
 });
 
 /* ---------- démarrage ---------- */
+/* ---------- onglets ---------- */
+const TABS = ["home", "rank", "matches", "more"];
+function setTab(t, keepScroll) {
+  if (TABS.indexOf(t) < 0) t = "home";
+  S.tab = t; document.body.dataset.tab = t; ls.set("m2_tab", t);
+  document.querySelectorAll("#tabbar [data-go]").forEach(b => { if (b.dataset.go === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  if (!keepScroll) window.scrollTo(0, 0);
+}
 function boot() {
+  setTab(ls.get("m2_tab", "home"), true);
   setPlayers(S.players);
   S.queue = ls.get("m2_queue", []);
   $("#fdate").value = keyOf(new Date()); $("#edate").value = keyOf(new Date());
