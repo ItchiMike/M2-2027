@@ -43,95 +43,84 @@
 
 <!-- Application -->
 <main class="wrap" id="appView" hidden>
-  <header data-pane="home">
-    <div class="brand">
-      <div class="logo" role="img" aria-label="Logo du Golf Château de la Tournette"></div>
-      <div class="brandtxt">
-        <div class="eyebrow">Golf Château de la Tournette · Préparation interclubs 2027</div>
-        <h1>M2 2027</h1>
-      </div>
-    </div>
-  </header>
   <div id="notices"></div>
 
-  <!-- Onglet Accueil -->
-  <section id="sec-me" data-pane="home">
-    <h2>Ma situation <small id="meHello"></small></h2>
-    <div id="stats"></div>
-  </section>
-
-  <section id="sec-cal" data-pane="home">
-    <h2>Calendrier <small>À venir</small></h2>
-    <button class="btn quick" id="eAdd" type="button" hidden>+ Ajouter un événement</button>
-    <div id="events"></div>
-    <p class="muted" id="enote2" hidden>L'ajout et la modification des événements sont réservés à certains joueurs. Vous pouvez les consulter et les ajouter à votre agenda.</p>
-  </section>
-
-  <!-- Onglet Classement -->
-  <section id="sec-rank" data-pane="rank">
-    <h2>Classement <small id="upd"></small></h2>
-    <div class="scroll"><table id="table"></table></div>
-    <p class="muted">Départage : confrontation directe entre joueurs à égalité, puis nombre de victoires. Touchez un nom pour ouvrir sa fiche.</p>
-  </section>
-
-  <section id="fiche" data-pane="rank">
-    <h2>Fiche joueur</h2>
-    <label class="pick">Joueur<select id="pick"></select></label>
-    <div id="fiche-body"></div>
-  </section>
-
-  <!-- Onglet Matchs -->
-  <section id="sec-results" data-pane="matches">
-    <h2>Derniers résultats <small id="rcount"></small></h2>
-    <ul class="res" id="results"></ul>
-    <button class="link" id="moreRes" type="button" hidden></button>
-  </section>
-
-  <section id="sec-grid" data-pane="matches">
-    <h2>Tableau des rencontres</h2>
-    <div class="scroll"><table class="x" id="grid"></table></div>
-    <div class="legend">
-      <span><i class="sw" style="background:var(--win-soft);outline:1px solid var(--win)"></i>Points marqués par le joueur de la ligne contre celui de la colonne : plus de la moitié</span>
-      <span><i class="sw" style="background:var(--half-soft);outline:1px solid var(--half)"></i>Moitié</span>
-      <span><i class="sw" style="background:var(--loss-soft);outline:1px solid var(--loss)"></i>Moins de la moitié</span>
+  <!-- ===== Accueil ===== -->
+  <div class="pane" data-pane="home">
+    <div class="topbar"><div class="logotxt">M2 2027</div><button class="userpill" id="userPill" type="button" aria-label="Mon compte"><span class="av" id="meAv"></span><span id="meFirst"></span></button></div>
+    <div class="homegrid">
+      <section class="card me" id="sec-me" aria-label="Ma situation"><div id="stats"></div></section>
+      <section class="card" id="sec-next" aria-label="Prochain événement"><div id="nextEv"></div></section>
+      <section class="card lastcard" id="sec-last" aria-label="Dernier résultat"><div id="lastRes"></div></section>
     </div>
-  </section>
+  </div>
 
-  <!-- Onglet Plus -->
-  <section id="sec-links" data-pane="more">
-    <h2>Liens utiles</h2>
-    <ul class="links">
-      <!-- Pour ajouter un lien : copiez la ligne ci-dessous, puis changez l'adresse (href) et le nom affiché. -->
-      <li><a href="https://www.randa.org/fr-FR/rog/the-rules-of-golf" target="_blank" rel="noopener noreferrer">Règles de golf</a></li>
-    </ul>
-  </section>
+  <!-- ===== Classement ===== -->
+  <div class="pane" data-pane="rank">
+    <div class="ptitle"><h1 class="pt">Classement</h1><small id="upd"></small></div>
+    <div id="podium" class="podium"></div>
+    <div class="card list" id="table"></div>
+    <p class="hint">Touchez un joueur pour voir sa fiche : matchs joués et adversaires restants. Départage : confrontation directe, puis nombre de victoires.</p>
+  </div>
 
-  <section id="sec-rules" data-pane="more">
-    <details class="fold" id="rules">
-      <summary><div class="sh"><span class="st">Règles du jeu</span></div></summary>
-      <div class="body"><p class="sub">Matchplays en un contre un, tout le monde contre tout le monde : <span id="subCount">14 joueurs, 91 paires</span>. Seuls les matchs de 18 trous sont autorisés : 2 points pour une victoire, 1 point en cas d'égalité. Chaque paire de joueurs ne joue qu'un seul match. Dernière date pour jouer : dimanche 28 mars 2027.</p></div>
-    </details>
-  </section>
-
-  <details class="fold" id="sec-hist" data-pane="more">
-    <summary><div class="sh"><span class="st">Historique des modifications</span><small>100 dernières</small></div></summary>
-    <div class="body">
-      <ul class="hist" id="history"></ul>
+  <!-- ===== Matchs ===== -->
+  <div class="pane" data-pane="matches">
+    <div class="ptitle"><h1 class="pt">Matchs</h1><small id="rcount"></small></div>
+    <div class="seg" role="tablist" aria-label="Affichage">
+      <button type="button" role="tab" data-mview="res" aria-selected="true">Résultats</button>
+      <button type="button" role="tab" data-mview="grid" aria-selected="false">Tableau</button>
     </div>
-  </details>
+    <section id="sec-results">
+      <div class="card list"><ul class="res" id="results"></ul></div>
+      <button class="link" id="moreRes" type="button" hidden></button>
+      <p class="hint">Touchez un match pour le modifier ou le supprimer. Toutes les modifications sont enregistrées avec leur auteur.</p>
+    </section>
+    <section id="sec-grid" hidden>
+      <div class="card"><div class="scroll"><table class="x" id="grid"></table></div></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--win-soft);outline:1px solid var(--win)"></i>Points marqués par le joueur de la ligne contre celui de la colonne : plus de la moitié</span>
+        <span><i class="sw" style="background:var(--half-soft);outline:1px solid var(--half)"></i>Moitié</span>
+        <span><i class="sw" style="background:var(--loss-soft);outline:1px solid var(--loss)"></i>Moins de la moitié</span>
+      </div>
+    </section>
+  </div>
 
-  <section id="sec-acct" data-pane="more">
-    <h2>Compte</h2>
-    <div class="userbar">
-      <span>Connecté : <b id="meName"></b></span>
-      <span class="sync" id="sync"></span>
+  <!-- ===== Plus ===== -->
+  <div class="pane" data-pane="more">
+    <div class="ptitle"><h1 class="pt">Plus</h1></div>
+    <div class="moregrid">
+      <section class="card list" id="sec-cal">
+        <div class="chead"><div class="ct">Calendrier · à venir</div><button class="btn sm2" id="eAdd" type="button" hidden>+ Événement</button></div>
+        <div id="events"></div>
+        <p class="hint inner" id="enote2" hidden>L'ajout et la modification des événements sont réservés à certains joueurs. Vous pouvez les consulter et les ajouter à votre agenda.</p>
+      </section>
+      <div class="moreside">
+        <section class="card list" id="sec-links">
+          <details class="row-d" id="linksbox" open>
+            <summary><span class="ri"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></svg></span><span class="rt">Liens utiles</span></summary>
+            <ul class="links">
+              <!-- Pour ajouter un lien : copiez la ligne ci-dessous, puis changez l'adresse (href) et le nom affiché. -->
+              <li><a href="https://www.randa.org/fr-FR/rog/the-rules-of-golf" target="_blank" rel="noopener noreferrer">Règles de golf</a></li>
+            </ul>
+          </details>
+          <details class="row-d" id="rules">
+            <summary><span class="ri"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h9l3 3v13H6z"/><path d="M9 11h6M9 15h6"/></svg></span><span class="rt">Règles du jeu</span><span class="rs">18 trous · 2 pts / 1 pt</span></summary>
+            <p class="sub inner">Matchplays en un contre un, tout le monde contre tout le monde : <span id="subCount">14 joueurs, 91 paires</span>. Seuls les matchs de 18 trous sont autorisés : 2 points pour une victoire, 1 point en cas d'égalité. Chaque paire de joueurs ne joue qu'un seul match. Dernière date pour jouer : dimanche 28 mars 2027.</p>
+          </details>
+          <details class="row-d" id="sec-hist">
+            <summary><span class="ri"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span class="rt">Historique des modifications</span><span class="rs">100 dernières</span></summary>
+            <ul class="hist inner" id="history"></ul>
+          </details>
+        </section>
+        <section class="card list" id="sec-acct">
+          <div class="row"><span class="av sm" id="meAv2"></span><span class="rt">Connecté : <b id="meName"></b></span><span class="rs sync" id="sync"></span></div>
+          <button class="row rowbtn" id="refreshBtn" type="button"><span class="ri"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></span><span class="rt">Actualiser</span></button>
+          <button class="row rowbtn danger" id="logoutBtn" type="button"><span class="ri"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5H5v14h5M15 8l4 4-4 4M19 12H9"/></svg></span><span class="rt">Changer de joueur</span></button>
+        </section>
+        <p class="hint">Le bouton « + Événement » n'apparaît que pour les joueurs qui gèrent le calendrier.</p>
+      </div>
     </div>
-    <div class="btnrow">
-      <button class="btn ghost" id="refreshBtn" type="button">Actualiser</button>
-      <button class="btn ghost" id="logoutBtn" type="button">Changer de joueur</button>
-    </div>
-    <p class="muted">Chaque ajout, correction ou suppression est enregistré avec le nom de son auteur.</p>
-  </section>
+  </div>
 
   <dialog class="modal" id="entry" aria-labelledby="mtitle">
     <div class="mhead"><h2 id="mtitle">Saisir un résultat</h2><button class="mclose" type="button" data-close="entry" aria-label="Fermer">✕</button></div>
@@ -170,6 +159,16 @@
       </form>
       <p class="msg" id="emsg"></p>
     </div>
+  </dialog>
+
+  <dialog class="modal" id="fichedlg" aria-labelledby="ftitle">
+    <div class="mhead"><h2 id="ftitle">Fiche joueur</h2><button class="mclose" type="button" data-close="fichedlg" aria-label="Fermer">✕</button></div>
+    <div class="mbody"><div id="fiche-body"></div><button class="btn" id="ficheAdd" type="button">Saisir un résultat</button></div>
+  </dialog>
+
+  <dialog class="modal" id="agenda" aria-labelledby="atitle">
+    <div class="mhead"><h2 id="atitle">Ajouter à l'agenda</h2><button class="mclose" type="button" data-close="agenda" aria-label="Fermer">✕</button></div>
+    <div class="mbody"><p class="muted" id="agendaWhat"></p><div class="agendalinks" id="agendaLinks"></div></div>
   </dialog>
 
   <button class="fab" id="fab" type="button" aria-label="Saisir un résultat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Résultat</button>

@@ -96,7 +96,7 @@ async function flush() {
 
 /* ---------- connexion ---------- */
 function showLogin(msg) {
-  S.selected = ""; S.selTouched = false;
+  S.selected = ""; S.msel = null;
   $("#appView").hidden = true; $("#loginView").hidden = false;
   $("#lmsg").textContent = msg || ""; $("#lmsg").className = "msg" + (msg ? " err" : "");
   fillPlayers();
@@ -159,17 +159,22 @@ const resultText = m => m.w === "h" ? "égalité" : nameOf(m.w === "a" ? m.a : m
 
 /* ---------- affichage ---------- */
 let C = null, V = null;
+const initials = n => { const p = String(n || "?").split(/[\s.]+/).filter(Boolean); return (p.length > 1 ? p[0][0] + p[1][0] : (p[0] || "?").slice(0, 2)).toUpperCase(); };
+const monthOf = s => new Intl.DateTimeFormat("fr-BE", { month: "short" }).format(parse(s));
+const dowOf = s => new Intl.DateTimeFormat("fr-BE", { weekday: "short" }).format(parse(s));
+const rankTxt = (r, same) => (r === 1 ? "1er" : r + "e") + (same ? " ex æquo" : "");
 function renderAll() {
   if ($("#appView").hidden) return;
   V = view(); C = compute(V.matches);
-  if (!S.selTouched && !S.selected && S.player) S.selected = S.player; // la fiche s'ouvre sur le joueur connecté
   const sig = S.players.map(p => p.id + ":" + p.name).join("|");
   if (sig !== S.pSig) { S.pSig = sig; fillPlayers(); }
-  if ($("#pick").value !== S.selected) $("#pick").value = S.selected;
-  $("#meName").textContent = S.name || nameOf(S.player);
+  const nm = S.name || nameOf(S.player);
+  $("#meName").textContent = nm; $("#meFirst").textContent = nm.split(" ")[0];
+  $("#meAv").textContent = initials(nm); $("#meAv2").textContent = initials(nm);
   $("#eAdd").hidden = !canCal(); $("#enote2").hidden = canCal();
   if (!canCal() && $("#eentry").open) $("#eentry").close();
-  renderStatus(); renderNotices(); renderStats(); renderTable(); renderFiche(); renderGrid(); renderResults(); renderEvents(); renderHistory();
+  renderStatus(); renderNotices(); renderStats(); renderNext(); renderTable(); renderGrid(); renderResults(); renderEvents(); renderHistory();
+  if ($("#fichedlg").open) renderFiche();
 }
 function renderStatus() {
   const el = $("#sync"); if (!el) return;
@@ -182,45 +187,67 @@ function renderNotices() {
   $("#notices").innerHTML = h;
 }
 function renderStats() {
-  const ms = V.matches, played = ms.length;
-  const total = S.players.length * (S.players.length - 1) / 2;
+  const played = V.matches.length, total = S.players.length * (S.players.length - 1) / 2;
   const left = Math.max(0, Math.round((parse(DEADLINE) - parse(keyOf(new Date()))) / 864e5));
   $("#subCount").textContent = S.players.length + " joueurs, " + total + " paires";
-  const me = C.by[S.player], first = (S.name || nameOf(S.player) || "").split(" ")[0];
-  $("#meHello").textContent = first;
-  if (!me) { $("#stats").innerHTML = '<p class="muted">Chargement…</p>'; return; }
-  const never = S.players.filter(p => p.id !== S.player && !me.opp[p.id]).sort((a, b) => a.name.localeCompare(b.name, "fr"));
-  const shown = never.slice(0, 6);
-  const mine = ms.filter(m => m.a === S.player || m.b === S.player).sort((a, b) => (b.d || "").localeCompare(a.d || "") || String(b.at).localeCompare(String(a.at)))[0];
-  const rankTxt = me.p ? `${me.rank === 1 ? "1er" : me.rank + "e"} <small>sur ${S.players.length}</small>` : `– <small>sur ${S.players.length}</small>`;
-  const lastTxt = mine ? `<div class="lastres"><span>Dernier résultat · ${esc(fmtShort(mine.d))}<br><b>${mine.w === "h" ? esc(nameOf(mine.a)) + " – " + esc(nameOf(mine.b)) : esc(nameOf(mine.w === "a" ? mine.a : mine.b)) + " bat " + esc(nameOf(mine.w === "a" ? mine.b : mine.a))}</b></span><span class="s">${mine.w === "h" ? "AS" : esc(mine.s)}</span></div>` : "";
+  const me = C.by[S.player];
+  if (!me) { $("#stats").innerHTML = ""; return; }
+  const rk = me.p ? (me.rank === 1 ? `1<span>er</span>` : `${me.rank}<span>e</span>`) : "–";
   $("#stats").innerHTML =
-    `<div class="me-top"><div class="me-rank">${rankTxt}</div><div class="me-pts"><b>${pts(me.pts)} pt${me.pts > 1 ? "s" : ""}</b><span>${me.p} match${me.p > 1 ? "s" : ""} joué${me.p > 1 ? "s" : ""}</span></div></div>
-     <div class="team"><span>Équipe : <b>${played} / ${total}</b> matchs joués · <b>J-${left}</b></span><div class="bar"><i style="width:${(played / total * 100).toFixed(1)}%"></i></div><span>Dernière date pour jouer : 28 mars 2027</span></div>
-     <div><h3>À affronter · ${never.length} adversaire${never.length > 1 ? "s" : ""} restant${never.length > 1 ? "s" : ""}</h3>${never.length ? `<div class="vs">${shown.map(p => `<button type="button" data-vs="${esc(p.id)}">${esc(p.name)}</button>`).join("")}${never.length > shown.length ? `<span class="vsmore">+ ${never.length - shown.length}</span>` : ""}</div>` : '<p class="muted">Vous avez joué contre tout le monde. Bravo !</p>'}</div>
-     ${lastTxt}`;
+    `<div class="eyebrow2">Ma situation</div>
+     <div class="me-top"><div class="me-l"><div class="me-rank">${rk}</div><div class="me-of">sur ${S.players.length}<br>joueurs</div></div>
+       <div class="me-r"><div class="me-pts">${pts(me.pts)} <span>pt${me.pts > 1 ? "s" : ""}</span></div><div class="me-sub">${me.p} match${me.p > 1 ? "s" : ""} joué${me.p > 1 ? "s" : ""}</div></div></div>
+     <div class="me-hr"></div>
+     <div class="me-team"><div class="l"><span>Équipe : ${played} / ${total} matchs joués</span><b>J-${left}</b></div>
+       <div class="mebar"><i style="width:${Math.min(100, played / total * 100).toFixed(1)}%"></i></div>
+       <div class="me-dl">Dernière date pour jouer : 28 mars 2027</div></div>`;
+}
+function upcoming() {
+  const today = keyOf(new Date());
+  return V.events.filter(e => e.d >= today).sort((a, b) => (a.d + (a.t || "")).localeCompare(b.d + (b.t || "")));
+}
+function renderNext() {
+  const e = upcoming()[0];
+  $("#nextEv").innerHTML = `<div class="chead"><div class="ct">Prochain événement</div><button class="cl" type="button" data-go="more">Tout voir</button></div>` + (e
+    ? `<div class="evrow"><div class="dtile"><i>${esc(monthOf(e.d))}</i><b>${parse(e.d).getDate()}</b></div>
+       <div class="evtxt"><div class="t">${esc(e.title)}</div><div class="w">${esc(dowOf(e.d))} · ${e.t ? esc(hh(e.t)) : "toute la journée"}${e.place ? " · " + esc(e.place) : ""}</div></div></div>
+       <button class="btn out" type="button" data-agenda="${esc(e.id)}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Ajouter à l'agenda</button>`
+    : '<p class="muted">Aucun événement à venir.</p>');
+  const byDate = a => V.matches.filter(a).sort((x, y) => (y.d || "").localeCompare(x.d || "") || String(y.at).localeCompare(String(x.at)))[0];
+  const m = byDate(x => x.a === S.player || x.b === S.player) || byDate(() => true);
+  $("#sec-last").hidden = !m;
+  if (m) $("#lastRes").innerHTML = `<div><div class="k">Dernier résultat · ${esc(fmtShort(m.d))}</div><div class="v">${m.w === "h" ? esc(nameOf(m.a)) + " – " + esc(nameOf(m.b)) : esc(nameOf(m.w === "a" ? m.a : m.b)) + " bat " + esc(nameOf(m.w === "a" ? m.b : m.a))}</div></div><div class="s">${m.w === "h" ? "AS" : esc(m.s)}</div>`;
 }
 function renderTable() {
-  let h = `<thead><tr><th>#</th><th class="name">Joueur</th><th title="Matchs joués">J</th><th title="Victoires">V</th><th title="Égalités">AS</th><th title="Défaites">D</th><th>Pts</th><th title="Adversaires rencontrés">Adv.</th></tr></thead><tbody>`;
-  C.ranked.forEach(s => {
-    h += `<tr class="${s.p && s.rank === 1 ? "lead" : ""}"><td class="rank">${s.p ? s.rank : "–"}</td><td class="name"><button data-pick="${esc(s.id)}">${esc(s.name)}</button></td><td>${s.p}</td><td>${s.w}</td><td>${s.h}</td><td>${s.l}</td><td class="tot">${pts(s.pts)}</td><td>${Object.keys(s.opp).length} / ${S.players.length - 1}</td></tr>`;
-  });
-  $("#table").innerHTML = h + "</tbody>";
   const last = V.matches.map(m => m.d).sort().pop();
   $("#upd").textContent = last ? "dernier match le " + fmtShort(last) : "";
+  const R = C.ranked, played = R.filter(s => s.p), idle = R.filter(s => !s.p);
+  const same = s => R.filter(x => x.p && x.rank === s.rank).length > 1;
+  const top = played.slice(0, 3), order = top.length === 3 ? [top[1], top[0], top[2]] : top;
+  $("#podium").innerHTML = order.map(s => `<button type="button" class="pod${s === top[0] ? " first" : ""}" data-pick="${esc(s.id)}"><div class="pa">${esc(initials(s.name))}</div><div class="pn">${esc(s.name)}</div><div class="pp">${pts(s.pts)} pt${s.pts > 1 ? "s" : ""}</div><div class="pr">${rankTxt(s.rank, same(s))}</div></button>`).join("");
+  const row = s => `<button type="button" class="lrow${s.id === S.player ? " me" : ""}" data-pick="${esc(s.id)}"><span class="rk">${s.rank}</span><span class="nm">${esc(s.name)}${s.id === S.player ? ' <span class="vous">vous</span>' : ""}</span><span>${s.w}</span><span>${s.h}</span><span>${s.l}</span><span class="pt2">${pts(s.pts)}</span></button>`;
+  let h = `<div class="lhead"><span>#</span><span>Joueur</span><span>V</span><span>AS</span><span>D</span><span>Pts</span></div>` + played.slice(3).map(row).join("");
+  if (!played.length) h += '<div class="empty" style="margin:14px">Aucun match joué pour l\'instant.</div>';
+  if (idle.length) {
+    h += `<button type="button" class="unp" data-unp aria-expanded="${S.unp ? "true" : "false"}"><span>Pas encore joué (${idle.length})</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
+    if (S.unp) h += `<div class="unplist">${idle.map(s => `<button type="button" data-pick="${esc(s.id)}">${esc(s.name)}</button>`).join("")}</div>`;
+  }
+  $("#table").innerHTML = h;
 }
+function openFiche(id) { S.selected = id; renderFiche(); openModal("fichedlg"); }
 function renderFiche() {
-  const box = $("#fiche-body");
-  if (!S.selected || !C.by[S.selected]) { box.innerHTML = '<p class="muted">Choisissez un joueur pour voir ses matchs et ses adversaires restants.</p>'; return; }
-  const s = C.by[S.selected];
+  const box = $("#fiche-body"), s = C.by[S.selected];
+  if (!s) { box.innerHTML = ""; return; }
   const done = []; for (const o in s.opp) s.opp[o].forEach(x => done.push([o, x]));
   done.sort((a, b) => (b[1].m.d || "").localeCompare(a[1].m.d || ""));
   const others = S.players.filter(p => p.id !== S.selected).sort((a, b) => a.name.localeCompare(b.name, "fr"));
   const never = others.filter(p => !s.opp[p.id]);
-  box.innerHTML = `<div class="fiche">
-    <div><h3>Matchs joués (${s.p}) · ${pts(s.pts)} pt${s.pts > 1 ? "s" : ""}</h3><div class="chips">${done.length ? done.map(([o, x]) => `<span class="chip ${x.t}">${esc(nameOf(o))} · ${x.t === "h" ? "AS" : (x.t === "w" ? "gagné " : "perdu ") + esc(x.m.s)}</span>`).join("") : '<span class="muted">Aucun match pour l\'instant.</span>'}</div></div>
-    <div><h3>Pas encore rencontrés (${never.length})</h3><div class="chips">${never.length ? never.map(p => `<span class="chip">${esc(p.name)}</span>`).join("") : '<span class="muted">Tous les adversaires ont été rencontrés.</span>'}</div>
-  </div></div>`;
+  $("#ftitle").textContent = "Fiche joueur";
+  box.innerHTML = `<div class="fiche"><div class="fhead"><span class="av" style="width:56px;height:56px;font-size:20px">${esc(initials(s.name))}</span><div><div class="nm">${esc(s.name)}</div><div class="st">${s.p ? rankTxt(s.rank, false) + " · " : ""}${pts(s.pts)} pt${s.pts > 1 ? "s" : ""} · ${s.p} match${s.p > 1 ? "s" : ""} joué${s.p > 1 ? "s" : ""}</div></div></div>
+    <div><h3>Matchs joués (${s.p})</h3><div class="chips">${done.length ? done.map(([o, x]) => `<span class="chip ${x.t}">${esc(nameOf(o))} · ${x.t === "h" ? "AS" : (x.t === "w" ? "gagné " : "perdu ") + esc(x.m.s)}</span>`).join("") : '<span class="muted">Aucun match pour l\'instant.</span>'}</div></div>
+    <div><h3>Pas encore rencontrés (${never.length})</h3><div class="chips">${never.length ? never.map(p => `<span class="chip">${esc(p.name)}</span>`).join("") : '<span class="muted">Tous les adversaires ont été rencontrés.</span>'}</div></div></div>`;
+  const add = $("#ficheAdd"); add.hidden = S.selected === S.player || !!(C.by[S.player] && C.by[S.player].opp[S.selected]);
+  add.textContent = "Saisir un résultat avec " + s.name;
 }
 function sortedPlayers() { return S.players.slice().sort((a, b) => a.name.localeCompare(b.name, "fr")); }
 function renderGrid() {
@@ -247,14 +274,16 @@ function renderResults() {
   $("#rcount").textContent = all.length ? all.length + " match" + (all.length > 1 ? "s" : "") : "";
   const more = $("#moreRes"); more.hidden = all.length <= 5;
   more.textContent = S.showAll ? "Voir seulement les 5 derniers" : "Voir tous les résultats (" + all.length + ")";
-  if (!list.length) { $("#results").innerHTML = '<li style="display:block"><div class="empty">Aucun résultat enregistré. Le premier match apparaîtra ici dès qu\'il sera saisi.</div></li>'; return; }
+  if (!list.length) { $("#results").innerHTML = '<li><div class="empty" style="margin:14px">Aucun résultat enregistré. Le premier match apparaîtra ici dès qu\'il sera saisi.</div></li>'; return; }
+  const pen = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
+  const bin = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14M10 11v6M14 11v6M7 7l1 12h8l1-12M9 7V4h6v3"/></svg>';
   $("#results").innerHTML = list.map(m => {
-    const who = m.w === "h" ? `<b>${esc(nameOf(m.a))}</b> – <b>${esc(nameOf(m.b))}</b>` : `<b>${esc(nameOf(m.w === "a" ? m.a : m.b))}</b> bat ${esc(nameOf(m.w === "a" ? m.b : m.a))}`;
-    const by = m.by ? `saisi par ${esc(nameOf(m.by))}${m.at ? " le " + esc(fmtWhen(m.at)) : ""}` : "";
-    const up = m.uby ? ` · modifié par ${esc(nameOf(m.uby))} le ${esc(fmtWhen(m.uat))}` : "";
-    return `<li><span class="d">${esc(fmtShort(m.d))}</span><span>${who}</span><span class="s">${m.w === "h" ? "AS" : esc(m.s)}</span>
-      <span class="meta">${esc(comboLabel(m.loops))} · ${by}${up}${m._pending ? ' <span class="pend">en attente</span>' : ""}
-      <button class="sm" data-medit="${esc(m.id)}" type="button">Modifier</button><button class="sm del" data-mdel="${esc(m.id)}" type="button">Supprimer</button></span></li>`;
+    const who = m.w === "h" ? `${esc(nameOf(m.a))} – ${esc(nameOf(m.b))}` : `${esc(nameOf(m.w === "a" ? m.a : m.b))} bat ${esc(nameOf(m.w === "a" ? m.b : m.a))}`;
+    const by = m.by ? ` · saisi par ${esc(nameOf(m.by))}` : "";
+    const up = m.uby ? ` · modifié par ${esc(nameOf(m.uby))}` : "";
+    const sel = S.msel === m.id, d = parse(m.d);
+    return `<li class="${sel ? "sel" : ""}"><button type="button" class="mrow" data-msel="${esc(m.id)}" aria-expanded="${sel}"><span class="d">${d.getDate()}<br>${esc(monthOf(m.d))}</span><span class="m"><b>${who}${m._pending ? ' <span class="pend">en attente</span>' : ""}</b><small>${esc(comboLabel(m.loops))}${by}${up}</small></span><span class="s${m.w === "h" ? " as" : ""}">${m.w === "h" ? "AS" : esc(m.s)}</span></button>
+      ${sel ? `<div class="macts"><button type="button" data-medit="${esc(m.id)}">${pen}Modifier</button><button type="button" class="del" data-mdel="${esc(m.id)}">${bin}Supprimer</button></div>` : ""}</li>`;
   }).join("");
 }
 
@@ -301,22 +330,17 @@ function calLinks(e) {
   return `<a href="${esc(g)}" target="_blank" rel="noopener">Google Agenda</a><a href="${esc(o)}" target="_blank" rel="noopener">Outlook</a><a href="${a}" download="${slug}.ics">Apple Calendar</a>`;
 }
 function renderEvents() {
-  const today = keyOf(new Date());
-  const list = V.events.slice().sort((a, b) => (a.d + (a.t || "")).localeCompare(b.d + (b.t || "")));
-  const up = list.filter(e => e.d >= today); // un événement disparaît le lendemain de sa date
-  const nextId = up[0] && up[0].id;
-  const card = (e, isPast) => {
+  const up = upcoming();
+  const pen = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
+  const bin = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14M10 11v6M14 11v6M7 7l1 12h8l1-12M9 7V4h6v3"/></svg>';
+  $("#events").innerHTML = up.length ? up.map((e, i) => {
     const by = e.by ? `Ajouté par ${esc(nameOf(e.by))}${e.uby ? " · modifié par " + esc(nameOf(e.uby)) : ""}` : "";
-    return `<div class="ev ${isPast ? "past" : ""} ${e.id === nextId ? "next" : ""}">
-      <b>${esc(e.title)}</b><span class="w">${esc(fmtDay(e.d))}${e.t ? " · " + esc(hh(e.t)) : " · toute la journée"}</span>
-      ${e.place ? `<span class="m">${esc(e.place)}</span>` : ""}${e.note ? `<span class="m">${esc(e.note)}</span>` : ""}
-      ${isPast ? "" : `<span class="acts">${calLinks(e)}</span>`}
-      ${canCal() || e._pending ? `<span class="acts">${canCal() ? `<button class="sm" data-eedit="${esc(e.id)}" type="button">Modifier</button><button class="sm del" data-edel="${esc(e.id)}" type="button">Supprimer</button>` : ""}${e._pending ? '<span class="pend">en attente</span>' : ""}</span>` : ""}
-      <span class="by">${by}</span></div>`;
-  };
-  $("#events").innerHTML = up.length
-    ? `<div class="evs">${up.map(e => card(e, false)).join("")}</div>`
-    : `<div class="empty">Aucun événement à venir.${canCal() ? " Utilisez « Ajouter un événement » plus bas : entraînement avec Florian, match d'équipe, repas…" : ""}</div>`;
+    return `<div class="ev"><div class="evline"><div class="dtile${i ? " alt" : ""}"><i>${esc(monthOf(e.d))}</i><b>${parse(e.d).getDate()}</b></div>
+      <div class="evtxt"><div class="t">${esc(e.title)}${e._pending ? ' <span class="pend">en attente</span>' : ""}</div><div class="w">${esc(dowOf(e.d))} · ${e.t ? esc(hh(e.t)) : "toute la journée"}${e.place ? " · " + esc(e.place) : ""}${e.note ? " · " + esc(e.note) : ""}</div></div>
+      <button class="agbtn" type="button" data-agenda="${esc(e.id)}">Agenda</button></div>
+      ${canCal() ? `<div class="macts"><button type="button" data-eedit="${esc(e.id)}">${pen}Modifier</button><button type="button" class="del" data-edel="${esc(e.id)}">${bin}Supprimer</button></div>` : ""}
+      <div class="by">${by}</div></div>`;
+  }).join("") : `<div class="empty">Aucun événement à venir.${canCal() ? " Utilisez « + Événement » : entraînement avec Florian, match d'équipe, repas…" : ""}</div>`;
 }
 
 /* ---------- historique ---------- */
@@ -352,12 +376,11 @@ function fillPlayers() {
   const P = sortedPlayers();
   const opts = P.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
   const keep = id => { const v = $(id).value; return v; };
-  const vals = { fa: keep("#fa"), fb: keep("#fb"), pick: keep("#pick"), l: keep("#lplayer") };
+  const vals = { fa: keep("#fa"), fb: keep("#fb"), l: keep("#lplayer") };
   $("#fa").innerHTML = '<option value="">Choisir…</option>' + opts;
   $("#fb").innerHTML = '<option value="">Choisir…</option>' + opts;
-  $("#pick").innerHTML = '<option value="">Choisir…</option>' + opts;
   $("#lplayer").innerHTML = '<option value="">Choisir…</option>' + opts;
-  $("#fa").value = vals.fa || (S.player || ""); $("#fb").value = vals.fb; $("#pick").value = S.selected || vals.pick; $("#lplayer").value = vals.l;
+  $("#fa").value = vals.fa || (S.player || ""); $("#fb").value = vals.fb; $("#lplayer").value = vals.l;
   refreshResult();
 }
 function refreshResult() {
@@ -445,7 +468,6 @@ $("#ecancel").addEventListener("click", () => $("#eentry").close());
 $("#fa").addEventListener("change", refreshResult);
 $("#fb").addEventListener("change", refreshResult);
 $("#fres").addEventListener("change", () => { $("#scorewrap").hidden = $("#fres").value === "h"; });
-$("#pick").addEventListener("change", e => { S.selected = e.target.value; S.selTouched = true; renderFiche(); });
 $("#fab").addEventListener("click", () => { resetMatchForm(); say($("#fmsg"), ""); openModal("entry"); });
 $("#eAdd").addEventListener("click", () => { resetEventForm(); say($("#emsg"), ""); openModal("eentry"); });
 $("#moreRes").addEventListener("click", () => { S.showAll = !S.showAll; renderResults(); });
@@ -454,7 +476,13 @@ document.addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t) return;
   if (t.dataset.go) { setTab(t.dataset.go); return; }
   if (t.dataset.vs) { resetMatchForm(); say($("#fmsg"), ""); $("#fb").value = t.dataset.vs; refreshResult(); openModal("entry"); return; }
-  if (t.dataset.pick) { S.selected = t.dataset.pick; S.selTouched = true; $("#pick").value = S.selected; renderFiche(); $("#fiche").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  if (t.dataset.pick) { openFiche(t.dataset.pick); return; }
+  if (t.dataset.unp !== undefined) { S.unp = !S.unp; renderTable(); return; }
+  if (t.dataset.msel) { S.msel = S.msel === t.dataset.msel ? null : t.dataset.msel; renderResults(); return; }
+  if (t.dataset.mview) { S.mview = t.dataset.mview; document.querySelectorAll("[data-mview]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.mview === S.mview))); $("#sec-results").hidden = S.mview !== "res"; $("#sec-grid").hidden = S.mview !== "grid"; return; }
+  if (t.dataset.agenda) { const ev = V.events.find(x => x.id === t.dataset.agenda); if (ev) { $("#agendaWhat").textContent = ev.title + " · " + fmtDay(ev.d) + (ev.t ? " · " + hh(ev.t) : ""); $("#agendaLinks").innerHTML = calLinks(ev); openModal("agenda"); } return; }
+  if (t.id === "ficheAdd") { const id = S.selected; $("#fichedlg").close(); resetMatchForm(); say($("#fmsg"), ""); $("#fb").value = id; refreshResult(); openModal("entry"); return; }
+  if (t.id === "userPill") { setTab("more"); return; }
   if (t.dataset.medit) { const m = V.matches.find(x => x.id === t.dataset.medit); if (m) editMatch(m); return; }
   if (t.dataset.eedit) { const ev = V.events.find(x => x.id === t.dataset.eedit); if (ev) editEvent(ev); return; }
   if (t.dataset.dismiss !== undefined) { S.errors.splice(+t.dataset.dismiss, 1); renderNotices(); return; }
@@ -462,8 +490,8 @@ document.addEventListener("click", e => {
   const del = t.dataset.mdel || t.dataset.edel;
   if (del) {
     if (!t.classList.contains("armed")) {
-      t.classList.add("armed"); t.textContent = "Confirmer ?";
-      setTimeout(() => { if (t.isConnected) { t.classList.remove("armed"); t.textContent = "Supprimer"; } }, 3500);
+      const old = t.innerHTML; t.classList.add("armed"); t.textContent = "Confirmer ?";
+      setTimeout(() => { if (t.isConnected) { t.classList.remove("armed"); t.innerHTML = old; } }, 3500);
       return;
     }
     enqueue(t.dataset.mdel ? "deleteMatch" : "deleteEvent", { id: del });
