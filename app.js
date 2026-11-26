@@ -6,7 +6,7 @@ const LOOPS = ["UK 1-9", "UK 10-18", "US 1-9", "US 10-18"];
 const COMBOS = [["UK 1-9", "UK 10-18"], ["US 1-9", "US 10-18"], ["UK 1-9", "US 1-9"], ["UK 1-9", "US 10-18"], ["UK 10-18", "US 1-9"], ["UK 10-18", "US 10-18"]];
 const SC9 = ["1 up", "2 up", "2&1", "3&1", "3&2", "4&2", "4&3", "5&3", "5&4"];
 const SC18 = SC9.concat(["6&4", "6&5", "7&5", "7&6", "8&6", "9&7", "10&8"]);
-const DEADLINE = "2027-04-11";
+const DEADLINE = "2027-03-28";
 const FALLBACK = [["mikael", "Mikael"], ["denis", "Denis"], ["dennis", "Dennis"], ["david", "David"], ["borja", "Borja"], ["mathieu", "Mathieu"], ["jeremy", "Jeremy"], ["maxl", "Maxime L."], ["maxt", "Maxime T."], ["marc", "Marc"], ["alex", "Alex"], ["dider", "Didier"], ["andre", "André"], ["yves", "Yves"]].map(p => ({ id: p[0], name: p[1] }));
 
 const $ = s => document.querySelector(s);
@@ -184,14 +184,13 @@ function renderNotices() {
 function renderStats() {
   const ms = V.matches, played = ms.length;
   const pairs = new Set(ms.map(m => [m.a, m.b].sort().join("|"))).size, total = S.players.length * (S.players.length - 1) / 2;
-  const n18 = ms.filter(m => m.n === 18).length, n9 = played - n18;
   const left = Math.max(0, Math.round((parse(DEADLINE) - parse(keyOf(new Date()))) / 864e5));
   const lead = C.ranked[0];
   $("#subCount").textContent = S.players.length + " joueurs, " + total + " paires";
   $("#stats").innerHTML =
     `<div class="stat"><b>${pairs} / ${total}</b><span>paires qui ont joué (${played} match${played > 1 ? "s" : ""})</span><div class="bar"><i style="width:${(pairs / total * 100).toFixed(1)}%"></i></div></div>
-     <div class="stat"><b>${left}</b><span>jours avant le 11 avril 2027</span></div>
-     <div class="stat"><b>${n9} / ${n18}</b><span>matchs de 9 trous / de 18 trous</span></div>
+     <div class="stat"><b>${left}</b><span>jours avant le 28 mars 2027</span></div>
+     <div class="stat"><b>${Math.max(0, total - played)}</b><span>match${total - played > 1 ? "s" : ""} de 18 trous restant${total - played > 1 ? "s" : ""} à jouer</span></div>
      <div class="stat"><b>${lead && lead.p ? esc(lead.name) : "–"}</b><span>${lead && lead.p ? "en tête avec " + pts(lead.pts) + " pt" + (lead.pts > 1 ? "s" : "") : "aucun match joué pour l'instant"}</span></div>`;
 }
 function renderTable() {
@@ -216,11 +215,10 @@ function renderFiche() {
   done.sort((a, b) => (b[1].m.d || "").localeCompare(a[1].m.d || ""));
   const others = S.players.filter(p => p.id !== S.selected).sort((a, b) => a.name.localeCompare(b.name, "fr"));
   const never = others.filter(p => !s.opp[p.id]);
-  const again = others.filter(p => s.opp[p.id] && s.opp[p.id].reduce((u, x) => u + x.units, 0) < 2);
   box.innerHTML = `<div class="fiche">
-    <div><h3>Matchs joués (${s.p}) · ${pts(s.pts)} pt${s.pts > 1 ? "s" : ""}</h3><div class="chips">${done.length ? done.map(([o, x]) => `<span class="chip ${x.t}">${esc(nameOf(o))} · ${x.t === "h" ? "AS" : (x.t === "w" ? "gagné " : "perdu ") + esc(x.m.s)} · ${x.m.n} trous</span>`).join("") : '<span class="muted">Aucun match pour l\'instant.</span>'}</div></div>
+    <div><h3>Matchs joués (${s.p}) · ${pts(s.pts)} pt${s.pts > 1 ? "s" : ""}</h3><div class="chips">${done.length ? done.map(([o, x]) => `<span class="chip ${x.t}">${esc(nameOf(o))} · ${x.t === "h" ? "AS" : (x.t === "w" ? "gagné " : "perdu ") + esc(x.m.s)}</span>`).join("") : '<span class="muted">Aucun match pour l\'instant.</span>'}</div></div>
     <div><h3>Pas encore rencontrés (${never.length})</h3><div class="chips">${never.length ? never.map(p => `<span class="chip">${esc(p.name)}</span>`).join("") : '<span class="muted">Tous les adversaires ont été rencontrés.</span>'}</div>
-    ${again.length ? `<h3 style="margin-top:14px">Un second match de 9 trous possible (${again.length})</h3><div class="chips">${again.map(p => `<span class="chip">${esc(p.name)}</span>`).join("")}</div>` : ""}</div></div>`;
+  </div></div>`;
 }
 function sortedPlayers() { return S.players.slice().sort((a, b) => a.name.localeCompare(b.name, "fr")); }
 function renderGrid() {
@@ -235,7 +233,7 @@ function renderGrid() {
       if (!xs) { h += "<td></td>"; return; }
       const got = xs.reduce((u, x) => u + x.pts, 0), units = xs.reduce((u, x) => u + x.units, 0);
       const cls = got * 2 > units ? "w" : got * 2 < units ? "l" : "h";
-      h += `<td class="${cls}" title="${esc(xs.map(x => resultText(x.m) + " · " + x.m.n + " trous").join(" | "))}">${pts(got)}</td>`;
+      h += `<td class="${cls}" title="${esc(xs.map(x => resultText(x.m)).join(" | "))}">${pts(got)}</td>`;
     });
     h += "</tr>";
   });
@@ -253,7 +251,7 @@ function renderResults() {
     const by = m.by ? `saisi par ${esc(nameOf(m.by))}${m.at ? " le " + esc(fmtWhen(m.at)) : ""}` : "";
     const up = m.uby ? ` · modifié par ${esc(nameOf(m.uby))} le ${esc(fmtWhen(m.uat))}` : "";
     return `<li><span class="d">${esc(fmtShort(m.d))}</span><span>${who}</span><span class="s">${m.w === "h" ? "AS" : esc(m.s)}</span>
-      <span class="meta">${m.n} trous · ${esc(comboLabel(m.loops))} · ${by}${up}${m._pending ? ' <span class="pend">en attente</span>' : ""}
+      <span class="meta">${esc(comboLabel(m.loops))} · ${by}${up}${m._pending ? ' <span class="pend">en attente</span>' : ""}
       <button class="sm" data-medit="${esc(m.id)}" type="button">Modifier</button><button class="sm del" data-mdel="${esc(m.id)}" type="button">Supprimer</button></span></li>`;
   }).join("");
 }
@@ -324,7 +322,7 @@ const MLAB = { d: "date", a: "joueur 1", b: "joueur 2", w: "résultat", s: "scor
 const ELAB = { d: "date", t: "heure", dur: "durée", title: "titre", place: "lieu", note: "précision" };
 function mval(k, m) { return k === "d" ? fmtShort(m.d) : k === "a" || k === "b" ? nameOf(m[k]) : k === "w" ? resultText(m) : k === "n" ? m.n + " trous" : k === "loops" ? comboLabel(m.loops) : String(m[k]); }
 function eval_(k, e) { return k === "d" ? fmtShort(e.d) : k === "t" ? (e.t ? hh(e.t) : "toute la journée") : k === "dur" ? e.dur + " min" : (e[k] || "–"); }
-function descM(m) { return nameOf(m.a) + " – " + nameOf(m.b) + " (" + resultText(m) + ", " + m.n + " trous)"; }
+function descM(m) { return nameOf(m.a) + " – " + nameOf(m.b) + " (" + resultText(m) + ")"; }
 function descE(e) { return "« " + e.title + " » le " + fmtShort(e.d) + (e.t ? " à " + hh(e.t) : ""); }
 function renderHistory() {
   const log = S.server.log.slice(0, 100);
@@ -366,11 +364,10 @@ function refreshResult() {
   $("#fres").value = prev; $("#scorewrap").hidden = $("#fres").value === "h";
 }
 function refreshFormat() {
-  const n = +$("#ffmt").value, prevScore = $("#fscore").value;
-  $("#fscore").innerHTML = (n === 18 ? SC18 : SC9).map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
+  const prevScore = $("#fscore").value;
+  $("#fscore").innerHTML = SC18.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
   if (prevScore && [...$("#fscore").options].some(o => o.value === prevScore)) $("#fscore").value = prevScore;
-  const ch = n === 18 ? COMBOS : LOOPS.map(l => [l]);
-  $("#floop").innerHTML = ch.map((c, i) => `<option value="${i}">${esc(comboLabel(c))}</option>`).join("");
+  $("#floop").innerHTML = COMBOS.map((c, i) => `<option value="${i}">${esc(comboLabel(c))}</option>`).join("");
 }
 
 /* ---------- fenêtres (formulaires) ---------- */
@@ -400,9 +397,8 @@ function resetMatchForm() {
 }
 function editMatch(m) {
   S.editMatch = m.id; $("#mtitle").textContent = "Corriger un résultat"; $("#fbtn").textContent = "Mettre à jour"; $("#fcancel").hidden = false;
-  $("#fa").value = m.a; $("#fb").value = m.b; $("#ffmt").value = String(m.n); refreshFormat();
-  const ch = m.n === 18 ? COMBOS : LOOPS.map(l => [l]);
-  const i = ch.findIndex(c => c.join("+") === m.loops.join("+")); if (i >= 0) $("#floop").value = String(i);
+  $("#fa").value = m.a; $("#fb").value = m.b; refreshFormat();
+  const i = COMBOS.findIndex(c => c.join("+") === m.loops.join("+")); if (i >= 0) $("#floop").value = String(i);
   refreshResult(); $("#fres").value = m.w; $("#scorewrap").hidden = m.w === "h";
   if (m.w !== "h") $("#fscore").value = m.s;
   $("#fdate").value = m.d; say($("#fmsg"), "");
@@ -413,11 +409,10 @@ $("#mform").addEventListener("submit", e => {
   const m = $("#fmsg"), a = $("#fa").value, b = $("#fb").value;
   if (!a || !b) return say(m, "Choisissez les deux joueurs.", "err");
   if (a === b) return say(m, "Les deux joueurs doivent être différents.", "err");
-  const n = +$("#ffmt").value, w = $("#fres").value;
-  const ch = n === 18 ? COMBOS : LOOPS.map(l => [l]);
-  const obj = { id: S.editMatch || uid(), d: $("#fdate").value, a, b, w, s: w === "h" ? "AS" : $("#fscore").value, n, loops: ch[+$("#floop").value] };
+  const n = 18, w = $("#fres").value;
+  const obj = { id: S.editMatch || uid(), d: $("#fdate").value, a, b, w, s: w === "h" ? "AS" : $("#fscore").value, n, loops: COMBOS[+$("#floop").value] };
   if (!obj.d) return say(m, "Choisissez la date.", "err");
-  if (pairUnits(V.matches, a, b, S.editMatch) + n / 9 > 2) return say(m, nameOf(a) + " et " + nameOf(b) + " ont déjà joué : un match de 18 trous ou deux matchs de 9 trous au maximum. Corrigez ou supprimez un match existant.", "err");
+  if (pairUnits(V.matches, a, b, S.editMatch) > 0) return say(m, nameOf(a) + " et " + nameOf(b) + " ont déjà joué : un seul match de 18 trous par paire. Corrigez ou supprimez le match existant.", "err");
   enqueue(S.editMatch ? "updateMatch" : "addMatch", obj);
   toast(S.editMatch ? "Résultat corrigé." : "Résultat enregistré : " + nameOf(a) + " – " + nameOf(b) + ".");
   resetMatchForm(); say(m, ""); $("#entry").close();
@@ -448,7 +443,6 @@ $("#ecancel").addEventListener("click", () => $("#eentry").close());
 $("#fa").addEventListener("change", refreshResult);
 $("#fb").addEventListener("change", refreshResult);
 $("#fres").addEventListener("change", () => { $("#scorewrap").hidden = $("#fres").value === "h"; });
-$("#ffmt").addEventListener("change", refreshFormat);
 $("#pick").addEventListener("change", e => { S.selected = e.target.value; S.selTouched = true; renderFiche(); });
 $("#quickAdd").addEventListener("click", () => { resetMatchForm(); say($("#fmsg"), ""); openModal("entry"); });
 $("#eAdd").addEventListener("click", () => { resetEventForm(); say($("#emsg"), ""); openModal("eentry"); });

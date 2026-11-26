@@ -60,7 +60,7 @@
     <div id="notices"></div>
     <details class="rulesbox" id="rules">
       <summary>Règles du jeu</summary>
-      <p class="sub">Matchplays en un contre un, tout le monde contre tout le monde : <span id="subCount">14 joueurs, 91 paires</span>. Un match de 9 trous vaut 1 point, un match de 18 trous 2 points (égalité : la moitié). Deux joueurs peuvent jouer un match de 18 trous ou deux matchs de 9 trous. Dernière date pour jouer : dimanche 11 avril 2027.</p>
+      <p class="sub">Matchplays en un contre un, tout le monde contre tout le monde : <span id="subCount">14 joueurs, 91 paires</span>. Seuls les matchs de 18 trous sont autorisés : 2 points pour une victoire, 1 point en cas d'égalité. Chaque paire de joueurs ne joue qu'un seul match. Dernière date pour jouer : dimanche 28 mars 2027.</p>
     </details>
     <button class="btn quick" id="quickAdd" type="button">+ Saisir un résultat</button>
   </header>
@@ -129,8 +129,7 @@
       <form class="form" id="mform">
         <label>Joueur 1<select id="fa" required></select></label>
         <label>Joueur 2<select id="fb" required></select></label>
-        <label>Format<select id="ffmt"><option value="9">9 trous</option><option value="18">18 trous</option></select></label>
-        <label>Terrain<select id="floop"></select></label>
+                <label>Terrain<select id="floop"></select></label>
         <label>Résultat<select id="fres"></select></label>
         <label id="scorewrap">Score<select id="fscore"></select></label>
         <label>Date<input type="date" id="fdate" required></label>
